@@ -1,0 +1,67 @@
+#include "ls/rpc/ConnectionManager.h"
+#include "ls/rpc/WorkerManager.h"
+#include "ls/rpc/ProtocolManager.h"
+#include "ls/rpc/Config.h"
+#include "ls/rpc/main.h"
+#include "unistd.h"
+
+using namespace ls;
+using namespace std;
+
+rpc::Config config;
+
+rpc::WorkerManager wm(config.workerNumber, config.connectionNumber);
+rpc::ProtocolManager pm;
+rpc::ConnectionManager cm(config.connectionNumber, config.buffersize);
+
+class JsonProtocol : public rpc::Protocol
+{
+	public:
+		JsonProtocol(const string &tag, int port) : Protocol(tag, port)
+		{
+		
+		}
+		~JsonProtocol() override
+		{
+		
+		}
+		string exec(const string &text) override
+		{
+			auto root = json::api.decode(text);
+			string cmd;
+			int cmdId;
+			json::Object parameter;
+			json::api.get(root, "cmd", cmd);
+			json::api.get(root, "cmdId", cmdId);
+			json::api.get(root, "parameter", parameter);
+			json::Object result;
+			json::api.push(result, "cmdId", cmdId);
+			json::api.push(result, "result", methodMapper[cmd](parameter));
+			return json::api.encode(result);
+		}
+		void add(const string &key, string(*func)(json::Object&))
+		{
+			methodMapper[key] = func;
+		}
+	protected:
+		map<string, string(*)(json::Object &)> methodMapper;
+};
+
+string hello(json::Object &parameter)
+{
+	string name;
+	json::api.get(parameter, "name", name);
+	return name;
+}
+
+int main(int argc, char **argv)
+{
+	JsonProtocol *jp = new JsonProtocol("json", 8081);
+	jp -> add("hello", hello);
+	pm.add("json", jp);
+	pm.run();
+	wm.run();
+	for(;;)
+		sleep(1);
+	return 0;
+}
