@@ -64,8 +64,11 @@ namespace ls
 								continue;
 							}
 						}
-						pm -> release(connection);
-						cm -> recycle(event.data.fd);
+						if(connection -> isRelease == true)
+						{
+							pm -> release(connection);
+							cm -> recycle(event.data.fd);
+						}
 					}
 					else if(event.events & EPOLLOUT)
 					{
@@ -79,8 +82,11 @@ namespace ls
 							if(e.getCode() == Exception::LS_EWOULDBLOCK)
 								continue;	
 						}
-						pm -> release(connection);
-						cm -> recycle(event.data.fd);
+						if(connection -> isRelease == true)
+						{
+							pm -> release(connection);
+							cm -> recycle(event.data.fd);
+						}
 					}
 					LOGGER(ls::INFO) << "fd " << event.data.fd << " has been released!" << ls::endl;
 				}

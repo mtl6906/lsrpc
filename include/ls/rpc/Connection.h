@@ -25,6 +25,7 @@ namespace ls
 				std::string responseType;
 				void *request;
 				void *response;
+				bool isRelease;
 
 		};
 	}
