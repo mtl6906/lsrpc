@@ -6,6 +6,7 @@
 #include "ls/io/OutputStream.h"
 #include "ls/rpc/Connection.h"
 #include "map"
+#include "queue"
 
 namespace ls
 {
@@ -14,13 +15,16 @@ namespace ls
 		class ConnectionManager
 		{
 			public:
-				ConnectionManager(int connectionNuber, int buffersize);
-				void assign(int fd, const std::string &protocol);
-				void recycle(int fd);
+				ConnectionManager(int connectionNumber, int buffersize);
+				~ConnectionManager();
+				void assign(int fd, const std::string &tag);
+				void recycle(Connection *connection);
+				void clear(Connection *connection);
 				Connection *get(int fd);
+				bool empty();
 			protected:
 				std::map<int, Connection *> connectionMapper;
-				Pool<Buffer> bufferPool;
+				std::queue<Buffer *> bufferPool;
 		};
 	}
 }

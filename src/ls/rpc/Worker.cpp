@@ -1,9 +1,11 @@
 #include "ls/rpc/Worker.h"
+
 #include "ls/epoll/Tool.h"
 #include "ls/rpc/main.h"
 #include "ls/io/API.h"
 #include "ls/Exception.h"
 #include "ls/DefaultLogger.h"
+#include "unistd.h"
 
 using namespace std;
 
@@ -11,91 +13,141 @@ namespace ls
 {
 	namespace rpc
 	{
-		Worker::Worker(int connectionNumber) : et(connectionNumber)
+		Worker::Worker(int connectionNumber, int buffersize) : cm(connectionNumber, buffersize), et(connectionNumber)
 		{
 
 		}
 		
-		void Worker::run(ConnectionManager *cm, ProtocolManager *pm)
+		void Worker::run(ProtocolManager *pm, QueueManager *qm, int threadNumber)
 		{
-			for(;;)	
+			Protocol *protocol = pm -> get(threadNumber);
+			net::Server &server = protocol -> getServer();
+			et.add(protocol -> fd(), EPOLLIN);
+			for(;;)
 			{
+			/*
+				if(qm -> iswait(1) == false)
+					for(;;)
+					{
+						if(cm.empty() == true)
+						{
+							break;
+						}
+						Connection *connection = nullptr;
+						try
+						{
+							connection = qm -> get(threadNumber);
+							LOGGER(ls::INFO) << threadNumber << ": get ok" << ls::endl;
+							cm.assign(connection);
+							et.add(connection -> fd(), EPOLLIN | EPOLLET);
+							LOGGER(ls::INFO) << threadNumber << ": add new event on " << (connection -> fd()) << ls::endl;
+						}
+						catch(Exception &e)
+						{
+							break;
+						}
+					}
+			*/
 				int n = et.wait(-1);
-				LOGGER(ls::INFO) << n << " epoll event happened..." << ls::endl;
+				if(n > 0)
+					LOGGER(ls::INFO) << threadNumber << ": "<< n << " event trigger" << ls::endl;
+				
 				for(int i=0;i<n;++i)
 				{
 					auto &event = et.event(i);
-					Connection *connection;
-				       	try
+					LOGGER(ls::INFO) << "event on " << event.data.fd << ls::endl;
+					if(event.data.fd == protocol -> fd())
 					{
-						connection = cm -> get(event.data.fd);
+						if(cm.empty())
+							continue;	
+						int connfd = server.accept();
+						cm.assign(connfd, protocol -> getTag());
+						et.add(connfd, EPOLLIN | EPOLLET | EPOLLRDHUP);
+						continue;
+					}
+					Connection *connection = nullptr;
+					try
+					{
+						connection = cm.get(event.data.fd);
 					}
 					catch(Exception &e)
 					{
 						continue;
 					}
-					if(event.events & EPOLLIN)
+					if(event.events & EPOLLRDHUP)
 					{
-						LOGGER(ls::INFO) << i << ": read event on " << event.data.fd << ls::endl;
+						pm -> release(connection);
+						cm.recycle(connection);
+						continue;
+					}
+					else if(event.events & EPOLLIN)
+					{
+						LOGGER(ls::INFO) << threadNumber << ": epollin trigger" << ls::endl;
 						try
 						{
 							pm -> readContext(connection);
 						}
 						catch(Exception &e)
 						{
-							if(e.getCode() != Exception::LS_ENOCOMPLETE)
+							if(e.getCode() == Exception::LS_ENOCOMPLETE)
 							{
-								pm -> release(connection);
-								cm -> recycle(event.data.fd);
+								LOGGER(ls::INFO) << threadNumber << ": read no complete" << ls::endl;
+								continue;
 							}
-							continue;	
+							pm -> release(connection);
+							if(connection -> keepalive == false)
+								cm.recycle(connection);
+							else
+								cm.clear(connection);
+							LOGGER(ls::INFO) << "read failed" << ls::endl;
+							continue;
 						}
-						LOGGER(ls::INFO) << "exec protocol..." << ls::endl;
+						LOGGER(ls::INFO) << threadNumber << ": read ok" << ls::endl;
 						pm -> exec(connection);
+						LOGGER(ls::INFO) << threadNumber << ": exec ok" << ls::endl;
 						try
-						{	
+						{
 							send(connection, pm);
+							LOGGER(ls::INFO) << threadNumber << ": send ok" << ls::endl;
 						}
 						catch(Exception &e)
 						{
 							if(e.getCode() == Exception::LS_EWOULDBLOCK)
 							{
+								LOGGER(ls::INFO) << threadNumber << ": write no complete" << ls::endl;
 								et.mod(event.data.fd, EPOLLOUT | EPOLLET);
 								continue;
 							}
-						}
-						if(connection -> isRelease == true)
-						{
-							pm -> release(connection);
-							cm -> recycle(event.data.fd);
+							LOGGER(ls::INFO) << threadNumber << ": send failed" << ls::endl;
 						}
 					}
 					else if(event.events & EPOLLOUT)
 					{
-						LOGGER(ls::INFO) << i << ": write event on " << event.data.fd << ls::endl;
+						LOGGER(ls::INFO) << threadNumber <<  ": epollout trigger" << ls::endl;
 						try
 						{
-							send(connection, pm);
+							send(connection, pm);			
+							LOGGER(ls::INFO) << threadNumber <<  ": send ok" << ls::endl;
 						}
 						catch(Exception &e)
 						{
 							if(e.getCode() == Exception::LS_EWOULDBLOCK)
-								continue;	
-						}
-						if(connection -> isRelease == true)
-						{
-							pm -> release(connection);
-							cm -> recycle(event.data.fd);
+							{
+								LOGGER(ls::INFO) << threadNumber <<  ": write no complete" << ls::endl;
+								continue;
+							}
+							LOGGER(ls::INFO) << threadNumber <<  ": send failed" << ls::endl;
 						}
 					}
-					LOGGER(ls::INFO) << "fd " << event.data.fd << " has been released!" << ls::endl;
+					pm -> release(connection);
+					if(connection -> keepalive == false)
+						cm.recycle(connection);
+					else
+						cm.clear(connection);
+					LOGGER(ls::INFO) << threadNumber << ": release ok" << ls::endl;
 				}
-			}
-		}
 
-		void Worker::add(int connfd, int type)
-		{
-			et.add(connfd, type);
+			}
 		}
 
 		void send(Connection *connection, ProtocolManager *pm)

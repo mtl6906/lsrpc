@@ -1,5 +1,10 @@
 #include "ls/rpc/ConnectionManager.h"
 #include "ls/Exception.h"
+#include "ls/DefaultLogger.h"
+#include "unistd.h"
+#include "thread"
+#include "atomic"
+
 
 using namespace std;
 
@@ -9,37 +14,76 @@ namespace ls
 	{
 		ConnectionManager::ConnectionManager(int connectionNumber, int buffersize)
 		{
-			for(int i=0;i<connectionNumber;++i)
-				bufferPool.put(new Buffer(buffersize));
+			for(int i=0;i<connectionNumber * 2;++i)
+				bufferPool.push(new Buffer(buffersize));
 		}
 
-		void ConnectionManager::assign(int fd, const string &protocol)
+		ConnectionManager::~ConnectionManager()
+		{
+			while(bufferPool.empty() == false)
+			{
+				delete bufferPool.front();
+				bufferPool.pop();
+			}
+		}
+
+		bool ConnectionManager::empty()
+		{
+			return bufferPool.empty();
+		}
+
+		void ConnectionManager::assign(int fd, const std::string &tag)
 		{
 			Connection *connection = new Connection(fd);
-			connection -> staticSendBuffer = bufferPool.get();
-			connection -> recvBuffer = bufferPool.get();
+			connection -> protocol = tag;
+			connection -> staticSendBuffer = bufferPool.front();
+			bufferPool.pop();
+			connection -> recvBuffer = bufferPool.front();
+			bufferPool.pop();
 			connection -> staticSendBuffer -> clear();
 			connection -> recvBuffer -> clear();
-			connection -> protocol = protocol;
-			connectionMapper[fd] = connection;
+			connectionMapper[connection -> fd()] = connection;
 		}
 
-		void ConnectionManager::recycle(int fd)
+		void ConnectionManager::recycle(Connection *connection)
 		{
-			auto connection = connectionMapper[fd];
-			bufferPool.put(connection -> staticSendBuffer);
-			bufferPool.put(connection -> recvBuffer);
+			LOGGER(ls::INFO) << "recycle" << ls::endl;
+			if(connection -> staticSendBuffer != nullptr)
+			{
+				bufferPool.push(connection -> staticSendBuffer);
+				connection -> staticSendBuffer = nullptr;
+			}
+			if(connection -> recvBuffer != nullptr)
+			{
+				bufferPool.push(connection -> recvBuffer);
+				connection -> recvBuffer = nullptr;
+			}
 			if(connection -> dynamicSendBuffer != nullptr)
+			{
 				delete connection -> dynamicSendBuffer;
-			delete connection;
+				connection -> dynamicSendBuffer = nullptr;
+			}
+			int fd = connection -> fd();
 			connectionMapper.erase(fd);
+			delete connection;
+		}
+
+		void ConnectionManager::clear(Connection *connection)
+		{
+			connection -> staticSendBuffer -> clear();
+			connection -> recvBuffer -> clear();
+			if(connection -> dynamicSendBuffer != nullptr)
+			{
+				delete connection -> dynamicSendBuffer;
+				connection -> dynamicSendBuffer = nullptr;
+			}
 		}
 
 		Connection *ConnectionManager::get(int fd)
 		{
 			auto it = connectionMapper.find(fd);
 			if(it == connectionMapper.end())
-				throw Exception(Exception::LS_ENOCONTENT);
+				return nullptr;
 			return it -> second;
 		}
 	}

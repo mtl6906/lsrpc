@@ -1,6 +1,9 @@
 #include "ls/rpc/ProtocolManager.h"
+#include "ls/rpc/QueueManager.h"
+#include "ls/DefaultLogger.h"
 #include "ls/Exception.h"
 #include "thread"
+#include "unistd.h"
 
 using namespace std;
 
@@ -8,17 +11,27 @@ namespace ls
 {
 	namespace rpc
 	{
+		ProtocolManager::ProtocolManager()
+		{
+		}
+
 		ProtocolManager::~ProtocolManager()
 		{
 			for(auto &it : protocols)
 				delete it.second;
 		}
 
-		void ProtocolManager::run(ConnectionManager *cm, WorkerManager *wm)
+		void ProtocolManager::run(QueueManager *qm)
 		{
+			int threadNumber = 0;
 			for(auto &it : protocols)
-				thread(&Protocol::run, it.second, cm, wm).detach();		
+				thread(&Protocol::run, it.second, qm, threadNumber++).detach();
 		}
+		
+		int ProtocolManager::size()
+		{
+			return protocols.size();
+		}		
 
 		void ProtocolManager::exec(Connection *connection)
 		{
@@ -31,6 +44,7 @@ namespace ls
 		void ProtocolManager::push(Protocol *protocol)
 		{
 			protocols[protocol -> getTag()] = protocol;
+			_protocols.push_back(protocol);
 		}
 
 		void ProtocolManager::readContext(Connection *connection)
@@ -46,6 +60,11 @@ namespace ls
 		void ProtocolManager::release(Connection *connection)
 		{
 			protocols[connection -> protocol] -> release(connection);
+		}
+
+		Protocol *ProtocolManager::get(int i)
+		{
+			return _protocols[i];
 		}
 	}
 }

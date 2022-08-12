@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 
 add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
-include_directories(include)
+include_directories(include sample)
 
 link_directories(/usr/local/lib)
 
@@ -14,7 +14,7 @@ aux_source_directory(sample SAMPLE)
 
 add_library(lsrpc SHARED  ${SRC})
 
-add_executable(server ${SRC} sample/server.cpp)
+add_executable(server ${SRC} sample/CASQueueFactory.cpp sample/server.cpp)
 
 add_executable(client sample/client.cpp)
 

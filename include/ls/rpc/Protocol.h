@@ -1,7 +1,8 @@
 #ifndef LS_RPC_PROTOCOL_H
 #define LS_RPC_PROTOCOL_H
 
-#include "ls/rpc/ConnectionManager.h"
+#include "ls/rpc/QueueManager.h"
+#include "ls/net/Server.h"
 #include "ls/file/File.h"
 #include "map"
 #include "string"
@@ -10,7 +11,6 @@ namespace ls
 {
 	namespace rpc
 	{
-		class WorkerManager;
 		class Protocol
 		{
 			public:
@@ -22,11 +22,16 @@ namespace ls
 				virtual void putFile(Connection *connection) = 0;
 				virtual file::File* getFile(Connection *connection) = 0;
 				virtual void release(Connection *connection) = 0;
-				void run(ConnectionManager *cm, WorkerManager *wm);
 				std::string &getTag();
+				int fd();
+				net::Server &getServer()
+				{
+					return server;
+				}
+				void run(QueueManager *qm, int threadNumber);
 			protected:
 				std::string tag;
-				int port;
+				net::Server server;
 		};
 	}
 }

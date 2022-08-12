@@ -1,4 +1,5 @@
 #include "ls/rpc/Tool.h"
+#include "CASQueueFactory.h"
 #include "ls/http/Response.h"
 #include "ls/http/Request.h"
 #include "ls/http/QueryString.h"
@@ -27,10 +28,14 @@ class JsonProtocol : public rpc::Protocol
 			auto in = connection -> getInputStream();
 			try
 			{
+				LOGGER(ls::INFO) << "ok " << in.getBuffer() -> restSize() << ls::endl;
 				in.tryRead();
+				LOGGER(ls::INFO) << "success" << ls::endl;
 			}
 			catch(Exception &e)
 			{
+//				LOGGER(ls::INFO) << in.getBuffer() -> begin() << " " << in.getBuffer() -> size()<< ls::endl;
+				LOGGER(ls::INFO) << "error" << ls::endl;
 				if(errno != EAGAIN && errno != EWOULDBLOCK)
 					throw e;
 			}
@@ -41,11 +46,12 @@ class JsonProtocol : public rpc::Protocol
 			}
 			catch(Exception &e)
 			{
+				LOGGER(ls::INFO) << in.getBuffer() -> begin() << ls::endl;
 				throw Exception(Exception::LS_ENOCOMPLETE);
 			}
 			json::Object *request = new json::Object();
 			*request = json::api.decode(text);
-			connection -> request = request;
+			connection -> request = (void *)request;
 		}
 
 		void exec(rpc::Connection *connection) override
@@ -82,12 +88,25 @@ class JsonProtocol : public rpc::Protocol
 
 		void release(rpc::Connection *connection)
 		{
+			LOGGER(ls::INFO) << ls::endl;
 			if(connection -> request != nullptr)
+			{
 				delete (json::Object *)connection -> request;
+				connection -> request = nullptr;
+			}
+			LOGGER(ls::INFO) << ls::endl;
 			if(connection -> response != nullptr && connection -> responseType == "static")
+			{
 				delete (file::File *)connection -> response;
+				connection -> response = nullptr;
+			}
+			LOGGER(ls::INFO) << ls::endl;
 			else if(connection -> response != nullptr)
+			{
 				delete (json::Object *)connection -> response;
+				connection -> response = nullptr;
+			}
+			LOGGER(ls::INFO) << ls::endl;
 		}
 
 		void add(const string &key, json::Object *(*func)(json::Object*))
@@ -245,7 +264,9 @@ json::Object* hello_json(json::Object *request)
 	string name;
 	int cmdId;
 	auto &root = *request;
-	json::api.get(root, "name", name);
+	json::Object parameter;
+	json::api.get(root, "parameter", parameter);
+	json::api.get(parameter, "name", name);
 	json::api.get(root, "cmdId", cmdId);
 	json::Object &result = *new json::Object();
 	json::api.push(result, "name", name);
@@ -302,12 +323,14 @@ http::Response *error(http::Request *request)
 int main()
 {
 	JsonProtocol *jp = new JsonProtocol("json", 8081);
-	HttpProtocol *hp = new HttpProtocol("http", 8082);
+	HttpProtocol *hp = new HttpProtocol("http", 8083);
 	jp -> add("hello_json", hello_json);
 	hp -> add("POST", "/hello_http", post_hello_http);
 	hp -> add("GET", "/hello_http", get_hello_http);
 	hp -> add("GET", "/error", error);
-	rpc::Tool tool;
+	
+	CASQueueFactory casqf;
+	rpc::Tool tool(casqf);
 	tool.push(jp);
 	tool.push(hp);
 	tool.run();

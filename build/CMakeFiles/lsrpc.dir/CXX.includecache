@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/ls/rpc/Connection.h
+ls/io/InputStream.h
+../include/ls/rpc/ls/io/InputStream.h
+ls/io/OutputStream.h
+../include/ls/rpc/ls/io/OutputStream.h
+ls/net/Socket.h
+../include/ls/rpc/ls/net/Socket.h
+string
+../include/ls/rpc/string
+
+../include/ls/rpc/ConnectionManager.h
+ls/Pool.h
+../include/ls/rpc/ls/Pool.h
+ls/io/InputStream.h
+../include/ls/rpc/ls/io/InputStream.h
+ls/io/OutputStream.h
+../include/ls/rpc/ls/io/OutputStream.h
+ls/rpc/Connection.h
+../include/ls/rpc/ls/rpc/Connection.h
+map
+../include/ls/rpc/map
+queue
+../include/ls/rpc/queue
+
+/home/mtl/lib/lib/rpc2/src/ls/rpc/ConnectionManager.cpp
+ls/rpc/ConnectionManager.h
+/home/mtl/lib/lib/rpc2/src/ls/rpc/ls/rpc/ConnectionManager.h
+ls/Exception.h
+/home/mtl/lib/lib/rpc2/src/ls/rpc/ls/Exception.h
+ls/DefaultLogger.h
+/home/mtl/lib/lib/rpc2/src/ls/rpc/ls/DefaultLogger.h
+unistd.h
+/home/mtl/lib/lib/rpc2/src/ls/rpc/unistd.h
+thread
+/home/mtl/lib/lib/rpc2/src/ls/rpc/thread
+atomic
+/home/mtl/lib/lib/rpc2/src/ls/rpc/atomic
+

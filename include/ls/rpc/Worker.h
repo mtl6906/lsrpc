@@ -3,6 +3,7 @@
 
 #include "ls/epoll/Tool.h"
 #include "ls/rpc/ConnectionManager.h"
+#include "ls/rpc/QueueManager.h"
 #include "string"
 
 namespace ls
@@ -13,10 +14,10 @@ namespace ls
 		class Worker
 		{
 			public:
-				Worker(int connectionNumber);
-				void run(ConnectionManager *cm, ProtocolManager *pm);
-				void add(int connfd, int type);
+				Worker(int connectionNumber, int buffersize);
+				void run(ProtocolManager *pm, QueueManager *qm, int threadNumber);
 			protected:
+				ConnectionManager cm;
 				epoll::Tool et;
 		};
 

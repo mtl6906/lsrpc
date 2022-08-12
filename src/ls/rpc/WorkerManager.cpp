@@ -7,10 +7,10 @@ namespace ls
 {
 	namespace rpc
 	{
-		WorkerManager::WorkerManager(int workerNumber, int connectionNumber) : workers(workerNumber)
+		WorkerManager::WorkerManager(int workerNumber, int connectionNumber, int buffersize) : workers(workerNumber)
 		{
 			for(int i=0;i<workerNumber;++i)
-				workers[i] = new Worker(connectionNumber);
+				workers[i] = new Worker(connectionNumber, buffersize);
 		}
 
 		WorkerManager::~WorkerManager()
@@ -19,16 +19,10 @@ namespace ls
 				delete worker;
 		}
 
-		void WorkerManager::run(ConnectionManager *cm, ProtocolManager *pm)
+		void WorkerManager::run(ProtocolManager *pm, QueueManager *qm)
 		{
-			for(auto worker : workers)
-				thread(&Worker::run, worker, cm, pm).detach();
-		}
-	
-		Worker *WorkerManager::nextWorker()
-		{
-			currentWorker = (currentWorker + 1)%workers.size();
-			return workers[currentWorker];
+			for(int i=0;i<workers.size();++i)
+				thread(&Worker::run, workers[i], pm, qm, i).detach();
 		}
 	}
 }

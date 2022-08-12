@@ -9,15 +9,15 @@
 using namespace std;
 using namespace ls;
 
-int main()
+int main(int argc, char **argv)
 {
-	net::Client client("127.0.0.1", 8081);
+	net::Client client(argv[1], 8081);
 	net::Socket sock(client.connect());
 	io::OutputStream out(sock.getWriter(), new Buffer());
 	io::InputStream in(sock.getReader(), new Buffer());
 
 	json::Object root;
-	json::api.push(root, "cmd", string("hello"));
+	json::api.push(root, "cmd", string("hello_json"));
 	json::api.push(root, "cmdId", int(1));
 	json::Object parameter;
 	json::api.push(parameter, "name", string("lx"));
@@ -27,7 +27,15 @@ int main()
 	out.append("", 1);
 	out.write();
 
-	in.read();
+	try
+	{
+		in.read();
+	}
+	catch(Exception &e)
+	{
+		cout << "read failed" << endl;
+		return 0;
+	}
 	cout << in.split() << endl;
 	return 0;
 }

@@ -1,0 +1,154 @@
+#include "ls/rpc/ProtocolManager.h"
+#include "ls/DefaultLogger.h"
+#include "ls/Exception.h"
+#include "thread"
+
+using namespace std;
+
+namespace ls
+{
+	namespace rpc
+	{
+		ProtocolManager::ProtocolManager(int connectionNumber) : et(connectionNumber)
+		{
+		
+		}
+
+		ProtocolManager::~ProtocolManager()
+		{
+			for(auto &it : protocols)
+				delete it.second;
+		}
+
+		void ProtocolManager::run(ConnectionManager *cm, WorkerManager *wm)
+		{
+			auto iq = cm -> getInputQueue();
+			auto oq = cm -> getOutputQueue();
+			for(auto &it : protocols)
+			{
+				int fd = it.second -> getServer().getFd();
+				et.add(fd, EPOLLIN | EPOLLET);
+				LOGGER(ls::INFO) << "add listen fd " << fd << "..." << ls::endl;
+			}
+			for(;;)
+			{
+				for(;;)
+				{
+					Connection *connection = nullptr;
+					try
+					{
+						connection = cm -> pop(oq, 0);
+					}
+					catch(Exception &e)
+					{
+						break;
+					}
+					if(connection -> status == WRITING)
+					{
+						cout << "set writing" << endl;
+						et.mod(connection -> getFd(), EPOLLOUT | EPOLLET);
+						continue;
+					}
+					int fd = connection -> getFd();
+					release(connection);
+					cm -> recycle(fd);
+					LOGGER(ls::INFO) << "fd " << fd << " has been released..." << ls::endl;	
+				}
+				LOGGER(ls::INFO) << "start..." << ls::endl;
+				int n = et.wait(-1);
+				LOGGER(ls::INFO) << n << " event happened..." << ls::endl;
+				for(int i=0;i<n;++i)
+				{
+					auto &event = et.event(i);
+					LOGGER(ls::INFO) << "event happend on fd" << event.data.fd << ls::endl;
+					cout << "event "<< endl;
+					bool is_listen_fd = false;
+					for(auto &it: protocols)
+					{
+						auto &server = it.second -> getServer();
+						if(event.data.fd == server.getFd())
+						{
+							is_listen_fd = true;
+							LOGGER(ls::INFO) << "accept event happen..." << ls::endl;
+							for(;;)
+							{
+								int connfd;
+								Connection *connection = nullptr;
+								try
+								{
+									connfd = server.accept();
+									LOGGER(ls::INFO) <<"connfd: " << connfd << ls::endl;
+								}
+								catch(Exception &e)
+								{
+									break;
+								}
+								try
+								{
+									connection = cm -> assign(connfd, it.second -> getTag());
+								}
+								catch(Exception &e)
+								{
+									break;
+								}
+								et.add(connfd, EPOLLIN | EPOLLET);
+								LOGGER(ls::INFO) << "accept fd " << connfd << " on protocol " << it.second -> getTag() << ls::endl;
+							}
+							break;
+						}
+
+					}
+					if(is_listen_fd)
+					{
+						LOGGER(ls::INFO) << "It's a listenfd event..." << ls::endl;
+						continue;
+					}
+					int connfd = event.data.fd;
+					Connection *connection = nullptr;
+					if(event.events & EPOLLIN)
+					{
+						connection = cm -> get(connfd);
+						if(connection -> status == ENDING || connection -> status == WRITING)
+							continue;
+						LOGGER(ls::INFO) << "READING..." << ls::endl;
+					}
+					else if(event.events & EPOLLOUT)
+					{
+				       		connection = cm -> get(connfd);
+						LOGGER(ls::INFO) << "WRITING..." << ls::endl;
+					}
+					cm -> push(iq, connection, 0);
+				}
+			}
+		}
+		
+		void ProtocolManager::exec(Connection *connection)
+		{
+			auto it = protocols.find(connection -> protocol);
+			if(it == protocols.end())
+				throw Exception(Exception::LS_ENOCONTENT);
+			it -> second -> exec(connection);
+		}
+
+		void ProtocolManager::push(Protocol *protocol)
+		{
+			protocols[protocol -> getTag()] = protocol;
+			et.add(protocol -> getServer().getFd(), EPOLLIN | EPOLLET);
+		}
+
+		void ProtocolManager::readContext(Connection *connection)
+		{
+			protocols[connection -> protocol] -> readContext(connection);
+		}
+
+		file::File *ProtocolManager::getFile(Connection *connection)
+		{
+			protocols[connection -> protocol] -> getFile(connection);
+		}
+
+		void ProtocolManager::release(Connection *connection)
+		{
+			protocols[connection -> protocol] -> release(connection);
+		}
+	}
+}

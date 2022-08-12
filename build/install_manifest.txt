@@ -1,0 +1,13 @@
+/usr/local/lib/liblsrpc.so
+/usr/local/include/ls/rpc/ConnectionManager.h
+/usr/local/include/ls/rpc/Connection.h
+/usr/local/include/ls/rpc/Protocol.h
+/usr/local/include/ls/rpc/Worker.h
+/usr/local/include/ls/rpc/Context.h
+/usr/local/include/ls/rpc/Tool.h
+/usr/local/include/ls/rpc/Config.h
+/usr/local/include/ls/rpc/QueueManager.h
+/usr/local/include/ls/rpc/ProtocolManager.h
+/usr/local/include/ls/rpc/WorkerManager.h
+/usr/local/include/ls/rpc/QueueFactory.h
+/usr/local/include/ls/rpc/main.h

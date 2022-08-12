@@ -6,6 +6,10 @@
 #include "ls/net/Socket.h"
 #include "string"
 
+#define READING 0
+#define WRITING 1
+#define ENDING 2
+
 namespace ls
 {
 	namespace rpc
@@ -25,8 +29,12 @@ namespace ls
 				std::string responseType;
 				void *request;
 				void *response;
-				bool isRelease;
-
+				int status;
+				bool keepalive;
+				int fd()
+				{
+					return sock.getFd();	
+				}
 		};
 	}
 }

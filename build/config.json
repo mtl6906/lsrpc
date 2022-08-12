@@ -1,0 +1,11 @@
+{
+	"workerNumber": 8,
+	"connectionNumber": 1024,
+	"buffersize": 2048,
+	"protocols": [
+		{
+			"tag": "json",
+			"port": 8080
+		}
+	]
+}
