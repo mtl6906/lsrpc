@@ -32,8 +32,10 @@ namespace ls
 			return bufferPool.empty();
 		}
 
-		void ConnectionManager::assign(int fd, const std::string &tag)
+		int ConnectionManager::assign(int fd, const std::string &tag)
 		{
+			if(bufferPool.empty())
+				return Exception::LS_ENOCONTENT;
 			Connection *connection = new Connection(fd);
 			connection -> protocol = tag;
 			connection -> staticSendBuffer = bufferPool.front();

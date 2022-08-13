@@ -20,34 +20,28 @@ namespace ls
 			delete q;
 		}
 
-		void QueueManager::put(Connection *connection, int threadNumber)
+		int QueueManager::put(Connection *connection, int threadNumber)
 		{
-			try
-			{
-				q -> push(connection);
-			}
-			catch(Exception &e)
+		
+			int ec = q -> push(connection);
+			if(ec < 0)
 			{
 		//		waits[threadNumber].store(true);
 				waits[0].store(true);
-				throw e;	
+				return ec;
 			}
 		}
 
-		Connection *QueueManager::get(int threadNumber)
+		Connection *QueueManager::get(int &ec, int threadNumber)
 		{
-			Connection *connection = nullptr;
-			try
+			auto connection = q -> pop(ec);
+			LOGGER(ls::INFO) << threadNumber << ": over" << ls::endl;
+			if(ec < 0)
 			{
-				connection = q -> pop();
-				LOGGER(ls::INFO) << threadNumber << ": over" << ls::endl;
-			}
-			catch(Exception &e)
-			{
-				if(e.getCode() == Exception::LS_ERESET)
+				if(ec == Exception::LS_ERESET)
 					waits[1].store(true);
 //					waits[threadNumber].store(true);
-				throw e;
+				return nullptr;
 			}
 			return connection;
 		}

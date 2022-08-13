@@ -21,7 +21,7 @@ namespace ls
 				epoll::Tool et;
 		};
 
-		void send(Connection *connection, ProtocolManager *pm);
+		int send(Connection *connection, ProtocolManager *pm);
 	}
 }
 

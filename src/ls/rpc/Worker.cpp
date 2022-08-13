@@ -65,15 +65,9 @@ namespace ls
 						et.add(connfd, EPOLLIN | EPOLLET | EPOLLRDHUP);
 						continue;
 					}
-					Connection *connection = nullptr;
-					try
-					{
-						connection = cm.get(event.data.fd);
-					}
-					catch(Exception &e)
-					{
+					auto connection = cm.get(event.data.fd);
+					if(connection == nullptr)
 						continue;
-					}
 					if(event.events & EPOLLRDHUP)
 					{
 						pm -> release(connection);
@@ -83,13 +77,10 @@ namespace ls
 					else if(event.events & EPOLLIN)
 					{
 						LOGGER(ls::INFO) << threadNumber << ": epollin trigger" << ls::endl;
-						try
+						int ec = pm -> readContext(connection);
+						if(ec < 0)
 						{
-							pm -> readContext(connection);
-						}
-						catch(Exception &e)
-						{
-							if(e.getCode() == Exception::LS_ENOCOMPLETE)
+							if(ec == Exception::LS_ENOCOMPLETE)
 							{
 								LOGGER(ls::INFO) << threadNumber << ": read no complete" << ls::endl;
 								continue;
@@ -103,16 +94,14 @@ namespace ls
 							continue;
 						}
 						LOGGER(ls::INFO) << threadNumber << ": read ok" << ls::endl;
-						pm -> exec(connection);
+						ec = pm -> exec(connection);
 						LOGGER(ls::INFO) << threadNumber << ": exec ok" << ls::endl;
-						try
+						
+						ec = send(connection, pm);
+						LOGGER(ls::INFO) << threadNumber << ": send ok" << ls::endl;
+						if(ec < 0)
 						{
-							send(connection, pm);
-							LOGGER(ls::INFO) << threadNumber << ": send ok" << ls::endl;
-						}
-						catch(Exception &e)
-						{
-							if(e.getCode() == Exception::LS_EWOULDBLOCK)
+							if(ec == Exception::LS_EWOULDBLOCK)
 							{
 								LOGGER(ls::INFO) << threadNumber << ": write no complete" << ls::endl;
 								et.mod(event.data.fd, EPOLLOUT | EPOLLET);
@@ -124,14 +113,12 @@ namespace ls
 					else if(event.events & EPOLLOUT)
 					{
 						LOGGER(ls::INFO) << threadNumber <<  ": epollout trigger" << ls::endl;
-						try
+						
+						int ec = send(connection, pm);			
+						LOGGER(ls::INFO) << threadNumber <<  ": send ok" << ls::endl;
+						if(ec < 0)
 						{
-							send(connection, pm);			
-							LOGGER(ls::INFO) << threadNumber <<  ": send ok" << ls::endl;
-						}
-						catch(Exception &e)
-						{
-							if(e.getCode() == Exception::LS_EWOULDBLOCK)
+							if(ec == Exception::LS_EWOULDBLOCK)
 							{
 								LOGGER(ls::INFO) << threadNumber <<  ": write no complete" << ls::endl;
 								continue;
@@ -150,26 +137,32 @@ namespace ls
 			}
 		}
 
-		void send(Connection *connection, ProtocolManager *pm)
+		int send(Connection *connection, ProtocolManager *pm)
 		{
+			int ec;
 			if(connection -> responseType == "static")
 			{
 				file::File *file = pm -> getFile(connection);
-				io::api.move(file -> getReader(), connection -> sock.getWriter(), connection -> staticSendBuffer, LS_IO_READ);
+				return io::api.move(file -> getReader(), connection -> sock.getWriter(), connection -> staticSendBuffer, LS_IO_READ);
 			}
 			else if(connection -> responseType == "dynamic")
 			{
 				if(connection -> staticSendBuffer -> size() > 0)
 				{
 					auto sout = connection -> getStaticOutputStream();
-					sout.tryWrite();
+					ec = sout.tryWrite();
+					if(ec < 0)
+						return ec;
 				}
 				if(connection -> dynamicSendBuffer -> size() > 0)
 				{
 					auto dout = connection -> getDynamicOutputStream();
-					dout.tryWrite();
+					ec = dout.tryWrite();
+					if(ec < 0)
+						return ec;
 				}
 			}
+			return Exception::LS_OK;
 		}
 	}
 }

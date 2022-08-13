@@ -33,11 +33,11 @@ namespace ls
 			return protocols.size();
 		}		
 
-		void ProtocolManager::exec(Connection *connection)
+		int ProtocolManager::exec(Connection *connection)
 		{
 			auto it = protocols.find(connection -> protocol);
 			if(it == protocols.end())
-				throw Exception(Exception::LS_ENOCONTENT);
+				return Exception::LS_ENOCONTENT;
 			it -> second -> exec(connection);
 		}
 
@@ -47,9 +47,9 @@ namespace ls
 			_protocols.push_back(protocol);
 		}
 
-		void ProtocolManager::readContext(Connection *connection)
+		int ProtocolManager::readContext(Connection *connection)
 		{
-			protocols[connection -> protocol] -> readContext(connection);
+			return protocols[connection -> protocol] -> readContext(connection);
 		}
 
 		file::File *ProtocolManager::getFile(Connection *connection)

@@ -14,8 +14,8 @@ namespace ls
 			public:
 				QueueManager(int workerNumber, Queue<Connection *> *q);
 				~QueueManager();
-				void put(Connection *connection, int threadNumber);
-				Connection* get(int threadNumber);
+				int put(Connection *connection, int threadNumber);
+				Connection* get(int &ec, int threadNumber);
 				bool iswait(int i);
 				void run(int protocolNumber);
 				void resetThread(int protocolNumber);

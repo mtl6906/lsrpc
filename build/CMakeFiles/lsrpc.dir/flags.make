@@ -6,5 +6,5 @@ CXX_FLAGS = -fPIC
 
 CXX_DEFINES = -D_GLIBCXX_USE_CXX11_ABI=0 -Dlsrpc_EXPORTS
 
-CXX_INCLUDES = -I/home/mtl/lib/lib/rpc2/include -I/home/mtl/lib/lib/rpc2/sample 
+CXX_INCLUDES = -I/home/mtl/old/mtl/code/lib/rpc/include -I/home/mtl/old/mtl/code/lib/rpc/sample 
 

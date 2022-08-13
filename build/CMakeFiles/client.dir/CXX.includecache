@@ -6,19 +6,19 @@
 
 #IncludeRegexTransform: 
 
-/home/mtl/lib/lib/rpc2/sample/client.cpp
+/home/mtl/old/mtl/code/lib/rpc/sample/client.cpp
 ls/net/Client.h
-/home/mtl/lib/lib/rpc2/sample/ls/net/Client.h
+/home/mtl/old/mtl/code/lib/rpc/sample/ls/net/Client.h
 ls/net/Socket.h
-/home/mtl/lib/lib/rpc2/sample/ls/net/Socket.h
+/home/mtl/old/mtl/code/lib/rpc/sample/ls/net/Socket.h
 ls/io/InputStream.h
-/home/mtl/lib/lib/rpc2/sample/ls/io/InputStream.h
+/home/mtl/old/mtl/code/lib/rpc/sample/ls/io/InputStream.h
 ls/io/OutputStream.h
-/home/mtl/lib/lib/rpc2/sample/ls/io/OutputStream.h
+/home/mtl/old/mtl/code/lib/rpc/sample/ls/io/OutputStream.h
 ls/json/API.h
-/home/mtl/lib/lib/rpc2/sample/ls/json/API.h
+/home/mtl/old/mtl/code/lib/rpc/sample/ls/json/API.h
 ls/Buffer.h
-/home/mtl/lib/lib/rpc2/sample/ls/Buffer.h
+/home/mtl/old/mtl/code/lib/rpc/sample/ls/Buffer.h
 iostream
-/home/mtl/lib/lib/rpc2/sample/iostream
+/home/mtl/old/mtl/code/lib/rpc/sample/iostream
 

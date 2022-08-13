@@ -21,8 +21,8 @@ namespace ls
 				ProtocolManager();
 				~ProtocolManager();
 				void run(QueueManager *qm);
-				void exec(Connection *connection);
-				void readContext(Connection *connection);
+				int exec(Connection *connection);
+				int readContext(Connection *connection);
 				void push(Protocol *protocol);
 				file::File* getFile(Connection *connection);
 				void release(Connection *connection);

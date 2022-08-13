@@ -16,8 +16,8 @@ namespace ls
 			public:
 				Protocol(const std::string &tag, int port);
 				virtual ~Protocol();
-				virtual void exec(Connection *connection) = 0;
-				virtual void readContext(Connection *connection) = 0;
+				virtual int exec(Connection *connection) = 0;
+				virtual int readContext(Connection *connection) = 0;
 				virtual void putString(Connection *connection) = 0;
 				virtual void putFile(Connection *connection) = 0;
 				virtual file::File* getFile(Connection *connection) = 0;

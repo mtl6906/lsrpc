@@ -18,20 +18,14 @@ int main(int argc, char **argv)
 
 	json::Object root;
 	json::api.push(root, "cmd", string("hello_json"));
-	json::api.push(root, "cmdId", int(1));
-	json::Object parameter;
-	json::api.push(parameter, "name", string("lx"));
-	json::api.push(root, "parameter", parameter);
+	json::api.push(root, "name", string("lx"));
 
 	out.append(json::api.encode(root));
 	out.append("", 1);
 	out.write();
 
-	try
-	{
-		in.read();
-	}
-	catch(Exception &e)
+	int ec = in.read();
+	if(ec < 0)
 	{
 		cout << "read failed" << endl;
 		return 0;

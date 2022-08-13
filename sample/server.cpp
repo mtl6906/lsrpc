@@ -23,44 +23,45 @@ class JsonProtocol : public rpc::Protocol
 		
 		}
 
-		void readContext(rpc::Connection *connection) override
+		int readContext(rpc::Connection *connection) override
 		{
 			auto in = connection -> getInputStream();
-			try
-			{
-				LOGGER(ls::INFO) << "ok " << in.getBuffer() -> restSize() << ls::endl;
-				in.tryRead();
-				LOGGER(ls::INFO) << "success" << ls::endl;
-			}
-			catch(Exception &e)
+			
+			LOGGER(ls::INFO) << "ok " << in.getBuffer() -> restSize() << ls::endl;
+			int ec = in.tryRead();
+			LOGGER(ls::INFO) << "success" << ls::endl;
+			if(ec < 0)
 			{
 //				LOGGER(ls::INFO) << in.getBuffer() -> begin() << " " << in.getBuffer() -> size()<< ls::endl;
 				LOGGER(ls::INFO) << "error" << ls::endl;
 				if(errno != EAGAIN && errno != EWOULDBLOCK)
-					throw e;
+					return ec;
 			}
 			string text;
-			try
-			{
-				text = in.splitOf("", 1);
-			}
-			catch(Exception &e)
+			text = in.splitOf(ec, "", 1);
+			if(ec < 0)
 			{
 				LOGGER(ls::INFO) << in.getBuffer() -> begin() << ls::endl;
-				throw Exception(Exception::LS_ENOCOMPLETE);
+				return Exception::LS_ENOCOMPLETE;
 			}
 			json::Object *request = new json::Object();
-			*request = json::api.decode(text);
+			*request = json::api.decode(ec, text);
+			if(ec < 0)
+				return ec;
 			connection -> request = (void *)request;
+			return Exception::LS_OK;
 		}
 
-		void exec(rpc::Connection *connection) override
+		int exec(rpc::Connection *connection) override
 		{
 			auto request = (json::Object *)connection -> request;
 			string cmd;
-			json::api.get(*request, "cmd", cmd);
+			int ec = json::api.get(*request, "cmd", cmd);
+			if(ec < 0)
+				return ec;
 			connection -> response = methodMapper[cmd](request);
 			putString(connection);
+			return ec;
 		}
 
 		void putFile(rpc::Connection *connection) override
@@ -130,71 +131,54 @@ class HttpProtocol : public rpc::Protocol
 			
 		}
 
-		void readContext(rpc::Connection *connection)
+		int readContext(rpc::Connection *connection)
 		{
 			auto in = connection -> getInputStream();
-			try
-			{
-				in.tryRead();
-			}
-			catch(Exception &e)
+			int ec = in.tryRead();
+			if(ec < 0)
 			{
 				if(errno != EAGAIN && errno != EWOULDBLOCK)
-					throw e;
+					return ec;
 			}
 		//	throw
-			string text;
-			try
-			{
-				text = in.split("\r\n\r\n", true);
-			}
-			catch(Exception &e)
-			{
-				throw Exception(Exception::LS_ENOCOMPLETE);
-			}
+			string text = in.split(ec, "\r\n\r\n", true);
+			if(ec < 0)
+				return Exception::LS_ENOCOMPLETE;
 			if(connection -> request == nullptr)
 				connection -> request = new http::Request();
 			http::Request *request = (http::Request *)connection -> request;
 		//	throw 
-			try
+			if(request -> getMethod() == "")
 			{
-				if(request -> getMethod() == "")
-					request -> parseFrom(text);
-			}
-			catch(Exception &e)
-			{
-				LOGGER(ls::INFO) << "parse failed..." << ls::endl;
-				delete request;
-				throw e;
+				int ec = request -> parseFrom(text);
+				if(ec < 0)
+				{
+					LOGGER(ls::INFO) << "parse failed..." << ls::endl;
+					delete request;
+					return ec;
+				}
 			}
 			if(request -> getMethod() == "GET")
-				return;
+				return ec;
 			LOGGER(ls::INFO) << "request with body..." << ls::endl;
-			int contentLength;
-			try
-			{
-				contentLength = stoi(request -> getAttribute("Content-Length"));
-			}
-			catch(Exception &e)
+			auto contentLength = request -> getAttribute(ec, "Content-Length");
+			if(ec < 0)
 			{
 				request -> setDefaultHeader();
 				request -> getMethod() = "GET";
 				request -> getURL() = "/error?code=411";
-				return ;
+				return ec;
 			}
+			int len = stoi(contentLength);
 		//	throw
-			try
-			{
-				auto text = in.split(contentLength);
-				request -> setBody(new http::StringBody(text, ""));
-			}
-			catch(Exception &e)
-			{
-				throw Exception(Exception::LS_ENOCOMPLETE);
-			}
+			text = in.split(ec, len);
+			if(ec < 0)
+				return Exception::LS_ENOCOMPLETE;
+			request -> setBody(new http::StringBody(text, ""));
+			return ec;
 		}
 
-		void exec(rpc::Connection *connection) override
+		int exec(rpc::Connection *connection) override
 		{
 			LOGGER(ls::INFO) << "map method" << ls::endl;
 			auto request = (http::Request*)connection -> request;
@@ -204,12 +188,13 @@ class HttpProtocol : public rpc::Protocol
 			{
 				connection -> response = method -> second(request);
 				putString(connection);
-				return ;
+				return Exception::LS_OK;
 			}
 			request -> getMethod() = "GET";
 			request -> getURL() = "/error?code=404";
 			connection -> response = methodMapper["GET"]["/error"](request);
 			putString(connection);
+			return Exception::LS_OK;
 		}
 
 		void putString(rpc::Connection *connection)
@@ -259,60 +244,81 @@ class HttpProtocol : public rpc::Protocol
 		map<string, map<string, http::Response *(*)(http::Request *)>> methodMapper;
 };
 
+json::Object* json_error(int code)
+{
+	auto root = new json::Object();
+	json::api.push(*root, "code", code);
+	string message = Exception(code).what();
+	json::api.push(*root, "message", message);
+	json::Object data;
+	json::api.push(*root, "data", data);
+	return root;
+}
+
 json::Object* hello_json(json::Object *request)
 {
-	string name;
-	int cmdId;
+	int ec;
 	auto &root = *request;
-	json::Object parameter;
-	json::api.get(root, "parameter", parameter);
-	json::api.get(parameter, "name", name);
-	json::api.get(root, "cmdId", cmdId);
-	json::Object &result = *new json::Object();
-	json::api.push(result, "name", name);
-	json::api.push(result, "cmdId", cmdId);
-	return &result;
+	string name;
+	json::Object data;
+	if((ec = json::api.get(root, "name", name)) == 0)
+		json::api.push(data, "name", name);	
+	auto result = new json::Object();
+	json::api.push(*result, "code", ec);
+	string message = Exception(ec).what();
+	json::api.push(*result, "message", message);
+	json::api.push(*result, "data", data);
+	return result;
 }
 
 http::Response* post_hello_http(http::Request *request)
 {
+	int ec;
 	auto *body = request -> getBody();
 	string text;
 	body -> getData(&text);
-	json::Object root = json::api.decode(text);
-	http::Response *response = new http::Response();
+	json::Object root = json::api.decode(ec, text);
+	unique_ptr<json::Object> jsonResponse;
+	if(ec < 0)
+		jsonResponse.reset(json_error(ec));
+	else
+		jsonResponse.reset(hello_json(&root));
+	auto response = new http::Response();
 	response -> setDefaultHeader(*request);
 	response -> setCode("200");
-	unique_ptr<json::Object> jsonResponse(hello_json(&root));
 	response -> setBody(new http::StringBody(jsonResponse -> toString(), "application/json"));
 	return response;
 }
 
 http::Response* get_hello_http(http::Request *request)
 {
+	int ec;
 	http::QueryString qs;
 	auto queryText = http::Url(request -> getURL()).queryText;
-	string name = "none";
-	if(queryText != "")
+	unique_ptr<json::Object> jsonResponse;
+	if(queryText == "" || qs.parseFrom(queryText) < 0)
+		jsonResponse.reset(json_error(Exception::LS_EFORMAT));
+	else
 	{
-		qs.parseFrom(queryText);
-		name = qs.getParameter("name");
+		json::Object root;
+		for(auto &it : qs.getData().getMapper())
+			it.second = string("\"") + it.second + "\"";
+		root.getData() = qs.getData();
+		jsonResponse.reset(hello_json(&root));
 	}
-	json::Object root;
-	json::api.push(root, "name", name);
 	auto response = new http::Response();
 	response -> setDefaultHeader(*request);
 	response -> setCode("200");
-	response -> setBody(new http::StringBody(root.toString(), "application/json"));
-	LOGGER(ls::INFO) << "over" << ls::endl;
+	response -> setBody(new http::StringBody(jsonResponse -> toString(), "application/json"));
 	return response;
 }
 
 http::Response *error(http::Request *request)
 {
+	int ec = Exception::LS_OK;
 	http::QueryString qs;
 	qs.parseFrom(http::Url(request -> getURL()).queryText);
-	auto code = qs.getParameter("code");
+	auto code = qs.getParameter(ec, "code");
 	auto response = new http::Response();
 	response -> setDefaultHeader(*request);
 	response -> setCode(code);

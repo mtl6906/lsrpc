@@ -1,4 +1,4 @@
-# Install script for directory: /home/mtl/lib/lib/rpc2
+# Install script for directory: /home/mtl/old/mtl/code/lib/rpc
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,7 +44,7 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
          FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/liblsrpc.so"
          RPATH "")
   endif()
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE SHARED_LIBRARY FILES "/home/mtl/lib/lib/rpc2/build/liblsrpc.so")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE SHARED_LIBRARY FILES "/home/mtl/old/mtl/code/lib/rpc/build/liblsrpc.so")
   if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/liblsrpc.so" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/liblsrpc.so")
     if(CMAKE_INSTALL_DO_STRIP)
@@ -57,7 +57,7 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/ls" TYPE DIRECTORY FILES "/home/mtl/lib/lib/rpc2/include/ls/rpc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/ls" TYPE DIRECTORY FILES "/home/mtl/old/mtl/code/lib/rpc/include/ls/rpc")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -68,5 +68,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/mtl/lib/lib/rpc2/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/mtl/old/mtl/code/lib/rpc/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

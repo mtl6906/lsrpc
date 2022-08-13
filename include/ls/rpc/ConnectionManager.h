@@ -17,7 +17,7 @@ namespace ls
 			public:
 				ConnectionManager(int connectionNumber, int buffersize);
 				~ConnectionManager();
-				void assign(int fd, const std::string &tag);
+				int assign(int fd, const std::string &tag);
 				void recycle(Connection *connection);
 				void clear(Connection *connection);
 				Connection *get(int fd);
