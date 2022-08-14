@@ -37,7 +37,7 @@ namespace ls
 //			pm.run(&qm);
 //			LOGGER(ls::INFO) << "pm start..." << ls::endl;
 			for(;;)
-				sleep(1);
+				sleep(1000);
 		}
 
 		void Tool::push(Protocol *protocol)

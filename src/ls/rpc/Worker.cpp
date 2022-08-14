@@ -154,7 +154,7 @@ namespace ls
 					if(ec < 0)
 						return ec;
 				}
-				if(connection -> dynamicSendBuffer -> size() > 0)
+				if(connection -> dynamicSendBuffer && connection -> dynamicSendBuffer -> size() > 0)
 				{
 					auto dout = connection -> getDynamicOutputStream();
 					ec = dout.tryWrite();

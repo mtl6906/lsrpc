@@ -39,6 +39,7 @@ namespace ls
 			if(it == protocols.end())
 				return Exception::LS_ENOCONTENT;
 			it -> second -> exec(connection);
+			return Exception::LS_OK;
 		}
 
 		void ProtocolManager::push(Protocol *protocol)
