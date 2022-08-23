@@ -4,6 +4,7 @@
 #include "ls/io/InputStream.h"
 #include "ls/io/OutputStream.h"
 #include "ls/net/Socket.h"
+#include "ls/file/File.h"
 #include "string"
 
 #define READING 0
@@ -17,19 +18,17 @@ namespace ls
 		class Connection
 		{
 			public:
-				Connection(int connfd);
+				Connection(int connfd, int buffersize);
 				io::InputStream getInputStream();
-				io::OutputStream getStaticOutputStream();
-				io::OutputStream getDynamicOutputStream();
+				io::OutputStream getOutputStream();
+				void clear();
+				void reset(int fd, const std::string &tag);
+				void reset(file::File *file);
 				net::Socket sock;
-				Buffer *staticSendBuffer;
-				Buffer *dynamicSendBuffer;
-				Buffer *recvBuffer;
+				Buffer sendBuffer;
+				Buffer recvBuffer;
 				std::string protocol;
-				std::string responseType;
-				void *request;
-				void *response;
-				int status;
+				std::unique_ptr<file::File> file;
 				bool keepalive;
 				int fd()
 				{

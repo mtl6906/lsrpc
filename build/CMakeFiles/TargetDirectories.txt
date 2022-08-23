@@ -1,9 +1,0 @@
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/install/strip.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/install.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/list_install_components.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/rebuild_cache.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/edit_cache.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/client.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/install/local.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/server.dir
-/home/mtl/old/mtl/code/lib/rpc/build/CMakeFiles/lsrpc.dir

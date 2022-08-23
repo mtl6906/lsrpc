@@ -55,7 +55,7 @@ namespace ls
 
 		file::File *ProtocolManager::getFile(Connection *connection)
 		{
-			protocols[connection -> protocol] -> getFile(connection);
+			return protocols[connection -> protocol] -> getFile(connection);
 		}
 
 		void ProtocolManager::release(Connection *connection)

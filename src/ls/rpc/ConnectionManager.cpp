@@ -15,70 +15,36 @@ namespace ls
 		ConnectionManager::ConnectionManager(int connectionNumber, int buffersize)
 		{
 			for(int i=0;i<connectionNumber * 2;++i)
-				bufferPool.push(new Buffer(buffersize));
+				connectionPool.push(new Connection(-1, buffersize));
 		}
 
 		ConnectionManager::~ConnectionManager()
 		{
-			while(bufferPool.empty() == false)
+			while(connectionPool.empty() == false)
 			{
-				delete bufferPool.front();
-				bufferPool.pop();
+				delete connectionPool.front();
+				connectionPool.pop();
 			}
 		}
 
 		bool ConnectionManager::empty()
 		{
-			return bufferPool.empty();
+			return connectionPool.empty();
 		}
 
 		int ConnectionManager::assign(int fd, const std::string &tag)
 		{
-			if(bufferPool.empty())
-				return Exception::LS_ENOCONTENT;
-			Connection *connection = new Connection(fd);
-			connection -> protocol = tag;
-			connection -> staticSendBuffer = bufferPool.front();
-			bufferPool.pop();
-			connection -> recvBuffer = bufferPool.front();
-			bufferPool.pop();
-			connection -> staticSendBuffer -> clear();
-			connection -> recvBuffer -> clear();
-			connectionMapper[connection -> fd()] = connection;
+			auto connection = connectionPool.front();
+			connectionPool.pop();
+			connection -> reset(fd, tag);
+			connectionMapper[fd] = connection;
 		}
 
 		void ConnectionManager::recycle(Connection *connection)
 		{
 			LOGGER(ls::INFO) << "recycle" << ls::endl;
-			if(connection -> staticSendBuffer != nullptr)
-			{
-				bufferPool.push(connection -> staticSendBuffer);
-				connection -> staticSendBuffer = nullptr;
-			}
-			if(connection -> recvBuffer != nullptr)
-			{
-				bufferPool.push(connection -> recvBuffer);
-				connection -> recvBuffer = nullptr;
-			}
-			if(connection -> dynamicSendBuffer != nullptr)
-			{
-				delete connection -> dynamicSendBuffer;
-				connection -> dynamicSendBuffer = nullptr;
-			}
-			int fd = connection -> fd();
-			connectionMapper.erase(fd);
-			delete connection;
-		}
-
-		void ConnectionManager::clear(Connection *connection)
-		{
-			connection -> staticSendBuffer -> clear();
-			connection -> recvBuffer -> clear();
-			if(connection -> dynamicSendBuffer != nullptr)
-			{
-				delete connection -> dynamicSendBuffer;
-				connection -> dynamicSendBuffer = nullptr;
-			}
+			connectionMapper.erase(connection -> fd());
+			connectionPool.push(connection);
 		}
 
 		Connection *ConnectionManager::get(int fd)

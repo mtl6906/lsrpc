@@ -24,7 +24,7 @@ namespace ls
 				bool empty();
 			protected:
 				std::map<int, Connection *> connectionMapper;
-				std::queue<Buffer *> bufferPool;
+				std::queue<Connection *> connectionPool;
 		};
 	}
 }

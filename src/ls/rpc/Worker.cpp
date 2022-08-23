@@ -89,7 +89,7 @@ namespace ls
 							if(connection -> keepalive == false)
 								cm.recycle(connection);
 							else
-								cm.clear(connection);
+								connection -> clear();
 							LOGGER(ls::INFO) << "read failed" << ls::endl;
 							continue;
 						}
@@ -130,7 +130,7 @@ namespace ls
 					if(connection -> keepalive == false)
 						cm.recycle(connection);
 					else
-						cm.clear(connection);
+						connection -> clear();
 					LOGGER(ls::INFO) << threadNumber << ": release ok" << ls::endl;
 				}
 
@@ -140,24 +140,17 @@ namespace ls
 		int send(Connection *connection, ProtocolManager *pm)
 		{
 			int ec;
-			if(connection -> responseType == "static")
+			if(connection -> file != nullptr)
 			{
 				file::File *file = pm -> getFile(connection);
-				return io::api.move(file -> getReader(), connection -> sock.getWriter(), connection -> staticSendBuffer, LS_IO_READ);
+				return io::api.move(file -> getReader(), connection -> sock.getWriter(), &connection -> sendBuffer, LS_IO_READ);
 			}
-			else if(connection -> responseType == "dynamic")
+			else
 			{
-				if(connection -> staticSendBuffer -> size() > 0)
+				if(connection -> sendBuffer.size() > 0)
 				{
-					auto sout = connection -> getStaticOutputStream();
+					auto sout = connection -> getOutputStream();
 					ec = sout.tryWrite();
-					if(ec < 0)
-						return ec;
-				}
-				if(connection -> dynamicSendBuffer && connection -> dynamicSendBuffer -> size() > 0)
-				{
-					auto dout = connection -> getDynamicOutputStream();
-					ec = dout.tryWrite();
 					if(ec < 0)
 						return ec;
 				}

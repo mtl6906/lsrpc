@@ -34,6 +34,7 @@ namespace ls
 
 		void Protocol::run(QueueManager *qm, int threadNumber)
 		{
+/*
 			for(;;)
 			{
 				if(qm -> iswait(0))
@@ -57,7 +58,7 @@ namespace ls
 				try
 				{
 					LOGGER(ls::INFO) << tag << " accept on fd " << connfd << ls::endl;
-					connection = new Connection(connfd);
+					connection = new Connection(connfd, );
 					connection -> protocol = getTag();
 					qm -> put(connection, threadNumber);
 					LOGGER(ls::INFO) << qm -> size() << ls::endl;
@@ -69,6 +70,7 @@ namespace ls
 					delete connection;
 				}
 			}
+		*/
 		}
 	}
 }
