@@ -58,9 +58,12 @@ namespace ls
 					LOGGER(ls::INFO) << "event on " << event.data.fd << ls::endl;
 					if(event.data.fd == protocol -> fd())
 					{
-						if(cm.empty())
-							continue;	
 						int connfd = server.accept();
+						if(cm.empty())
+						{
+							close(connfd);
+							continue;	
+						}
 						cm.assign(connfd, protocol -> getTag());
 						et.add(connfd, EPOLLIN | EPOLLET | EPOLLRDHUP);
 						continue;

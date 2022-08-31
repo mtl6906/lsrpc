@@ -44,6 +44,7 @@ namespace ls
 		{
 			LOGGER(ls::INFO) << "recycle" << ls::endl;
 			connectionMapper.erase(connection -> fd());
+			connection -> reset(-1, "");
 			connectionPool.push(connection);
 		}
 
