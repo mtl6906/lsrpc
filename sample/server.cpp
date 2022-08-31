@@ -4,7 +4,6 @@
 #include "ls/http/Request.h"
 #include "ls/http/QueryString.h"
 #include "ls/http/Url.h"
-#include "ls/http/StringBody.h"
 #include "ls/json/API.h"
 #include "ls/DefaultLogger.h"
 #include "ls/file/API.h"
